@@ -19,9 +19,9 @@ using RestSharp;
 namespace VVVV.Nodes
 {
 	#region PluginInfo
-	[PluginInfo(Name = "HTTP-REST", Category = "Network", Version = "0", Help = "Basic template with one string in/out", Tags = "")]
+	[PluginInfo(Name = "HTTP-REST", Category = "Network", Version = "0", Help = "Interact with RESTful Web API's. Based on RestSharp.org", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 	#endregion PluginInfo
-	public class C0NetworkHTTP_RESTNode : IPluginEvaluate
+	public class C0HTTP_RESTNode : IPluginEvaluate
 	{
 		#region enums
 		public enum HttpMethod { GET, POST, PUT, DELETE }
@@ -33,13 +33,13 @@ namespace VVVV.Nodes
 		public ISpread<string> FInputBaseURL;
 		
 		[Input("HttpMethod", DefaultEnumEntry = "GET")]
-		public ISpread<HttpMethod> FInputHttpMethod;
+		public ISpread<RestSharp.Method> FInputHttpMethod;
 		
 		[Input("MimeType", DefaultString ="")]
 		public ISpread<string> FInputMimeType;
 		
 		[Input("RequestFormat", DefaultEnumEntry = "JSON")]
-		public ISpread<RequestFormat> FInputRequestFormat;
+		public ISpread<RestSharp.DataFormat> FInputRequestFormat;
 		
 		[Input("Message Body", DefaultString = null)]
 		public ISpread<string> FInputMessageBody;
@@ -106,63 +106,18 @@ namespace VVVV.Nodes
 						
 						
 						var request = new RestRequest();
-						switch(FInputHttpMethod[i].ToString())
-						{
-						case "GET":
-							request.Method = Method.GET;
-							break;
-							
-						case "POST":
-							request.Method = Method.POST;
-							break;
-							
-						case "PUT":
-							request.Method = Method.PUT;
-							break;
-							
-						case "DELETE":
-							request.Method = Method.DELETE;
-							break;
-						}
-						
-						
-						
-						
-						
-						//  defines the Request serialisation format
-						switch(FInputRequestFormat[i].ToString())
-						{
-						case "JSON":
-							request.RequestFormat = DataFormat.Json;
-							break;
-							
-						case "XML":
-							request.RequestFormat = DataFormat.Xml;
-							break;
-						}
-						
-
-						//request.Resource = FInputResourcePath[i];
-						//request.AddHeader("Content-type", "application/json; charset=utf-8");
-						//request.AddBody(FInputContent[i]);
-						
+						request.Method = FInputHttpMethod[i]; // Set the REST method						
+						request.RequestFormat = FInputRequestFormat[i];
 						
 						request.AddParameter(FInputMimeType[i], FInputMessageBody[i], ParameterType.RequestBody);
 						
-						
-						
-						
-						//request.RequestFormat = DataFormat.Json;
-						//request.AddParameter(FInputContent[i]);
-						//request.AddUrlSegment("customer", "CUSTOMER");
-						//request.AddQueryParameterw
 						
 						
 						IRestResponse response = client.Execute(request);
 						
 						FOutputResponse[i] = response.Content;
 						
-						if(response.StatusCode.ToString() == "OK"|| response.StatusCode.ToString() == "Created")
+						if(response.StatusCode.ToString() == "OK" || response.StatusCode.ToString() == "Created")
 						{
 						FOutputSuccess[i] = true;
 						}
@@ -216,4 +171,4 @@ namespace VVVV.Nodes
 
 		//FLogger.Log(LogType.Debug, "Logging to Renderer (TTY)");
 	}
-}
+}
