@@ -3,8 +3,8 @@
 ###################
 assets/
 research/
-bin/
-obj/
+**/bin/
+**/obj/
 
 ###################
 # VVVV            #
