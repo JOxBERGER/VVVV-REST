@@ -265,7 +265,7 @@
    </BOUNDS>
    <BOUNDS type="Box" left="585" top="1875" width="1170" height="270">
    </BOUNDS>
-   <PIN pinname="Input String" visible="0" slicecount="1" values="|Made by:|">
+   <PIN pinname="Input String" visible="0" slicecount="1" values="By:">
    </PIN>
    <PIN pinname="Output String" visible="0">
    </PIN>

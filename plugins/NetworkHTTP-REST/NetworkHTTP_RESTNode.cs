@@ -10,13 +10,12 @@ using VVVV.Core.Logging;
 using RestSharp;
 #endregion usings
 
-// ToDo
-//// Nice way to enter URL URI as in MQTT Node
+// TODO make the requests asynchron.
 
 namespace VVVV.Nodes
 {
 	#region PluginInfo
-	[PluginInfo(Name = "HTTP-REST", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's. Based on RestSharp.org", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+	[PluginInfo(Name = "HTTP-REST", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 	#endregion PluginInfo
 	public class HTTP_RESTNode : IPluginEvaluate
 	{
