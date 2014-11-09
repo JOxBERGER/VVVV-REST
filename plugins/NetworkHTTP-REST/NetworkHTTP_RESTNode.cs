@@ -97,7 +97,7 @@ namespace VVVV.Nodes
 						
 						if(FInputUseBasicAuthentication[i])
 						{
-							client.Authenticator = new HttpBasicAuthenticator("username", "password");
+							client.Authenticator = new HttpBasicAuthenticator(FInputUsername[i], FInputPassword[i]);
 						}
 						
 						
