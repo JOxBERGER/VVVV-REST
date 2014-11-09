@@ -50,7 +50,7 @@
     <Reference Include="VVVV.Utils3rdParty" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="C0NetworkHTTP_RESTNode.cs" />
+    <Compile Include="NetworkHTTP_RESTNode.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
