@@ -1,6 +1,6 @@
 <!DOCTYPE PATCH  SYSTEM "http://vvvv.org/versions/vvvv45beta31.2.dtd" >
    <PATCH nodename="C:\Users\JL\Documents\GitHub\VVVV-REST\HTTP-REST(help).v4p" scrollx="0" scrolly="2100" systemname="HTTP-REST (help)" filename="D:\pduser-profiles\Leinberger.Jochen\Documents\_DEV\v4-REST\plugins\0NetworkHTTP-REST\HTTP-REST(help).v4p">
-   <BOUNDS type="Window" left="300" top="1710" width="19440" height="8820">
+   <BOUNDS type="Window" left="2355" top="1335" width="19440" height="8820">
    </BOUNDS>
    <NODE nodename="IOBox (Enumerations)" componentmode="InABox" id="1" systemname="IOBox (Enumerations)">
    <BOUNDS type="Box" left="12705" top="4905" width="1635" height="1635">
@@ -83,7 +83,7 @@
    </PIN>
    <PIN pinname="String Type" slicecount="1" values="MultiLine">
    </PIN>
-   <PIN pinname="Descriptive Name" slicecount="1" values="Input">
+   <PIN pinname="Descriptive Name" slicecount="1" values="| Message Body|">
    </PIN>
    <PIN pinname="Input String" slicecount="4" values="&lt;resource&gt;&lt;ID&gt;@id@&lt;/ID&gt;&lt;FIRSTNAME&gt;Jonny&lt;/FIRSTNAME&gt;&lt;/resource&gt;,,&lt;resource&gt;&lt;FIRSTNAME&gt;Jonny&lt;/FIRSTNAME&gt;&lt;STREET&gt;Turingstreet&lt;/STREET&gt;&lt;/resource&gt;,">
    </PIN>
@@ -319,7 +319,7 @@
    </PIN>
    <PIN pinname="RequestFormat" visible="1" slicecount="1" values="Json">
    </PIN>
-   <PIN pinname="Message Body" visible="1" slicecount="4" values="||">
+   <PIN pinname="Message Body" visible="1" slicecount="4" values="&lt;resource&gt;&lt;ID&gt;@id@&lt;/ID&gt;&lt;FIRSTNAME&gt;Jonny&lt;/FIRSTNAME&gt;&lt;/resource&gt;,,&lt;resource&gt;&lt;FIRSTNAME&gt;Jonny&lt;/FIRSTNAME&gt;&lt;STREET&gt;Turingstreet&lt;/STREET&gt;&lt;/resource&gt;,">
    </PIN>
    <PIN pinname="Header" visible="1">
    </PIN>
@@ -329,9 +329,9 @@
    </PIN>
    <PIN pinname="Use Basic Authentication" slicecount="1" values="0">
    </PIN>
-   <PIN pinname="Username" slicecount="1" values="||" visible="1">
+   <PIN pinname="Username" slicecount="1" visible="1" values="||">
    </PIN>
-   <PIN pinname="Password" slicecount="1" values="||" visible="1">
+   <PIN pinname="Password" slicecount="1" visible="1" values="||">
    </PIN>
    <BOUNDS type="Box" left="585" top="7065">
    </BOUNDS>
@@ -577,9 +577,9 @@
    <LINK srcnodeid="147" srcpinname="Output" dstnodeid="23" dstpinname="Input String">
    </LINK>
    <NODE nodename="IOBox (String)" componentmode="InABox" id="148" systemname="IOBox (String)">
-   <BOUNDS type="Node" left="7605" top="3495" width="5190" height="270">
+   <BOUNDS type="Node" left="7575" top="3495" width="5190" height="270">
    </BOUNDS>
-   <BOUNDS type="Box" left="7605" top="3495" width="1800" height="690">
+   <BOUNDS type="Box" left="7575" top="3495" width="1800" height="690">
    </BOUNDS>
    <PIN pinname="Input String" visible="0" slicecount="1" values="|Select a random ID for the new User to create first!|">
    </PIN>
@@ -608,12 +608,6 @@
    <LINKPOINT x="5220" y="5318">
    </LINKPOINT>
    <LINKPOINT x="9990" y="5318">
-   </LINKPOINT>
-   </LINK>
-   <LINK srcnodeid="151" srcpinname="Output" dstnodeid="106" dstpinname="Message Body" linkstyle="VHV">
-   <LINKPOINT x="9270" y="6938">
-   </LINKPOINT>
-   <LINKPOINT x="5850" y="6938">
    </LINKPOINT>
    </LINK>
    <NODE nodename="IOBox (String)" componentmode="InABox" id="152" systemname="IOBox (String)">
@@ -646,4 +640,24 @@
    <PIN pinname="String Type" slicecount="1" values="MultiLine">
    </PIN>
    </NODE>
+   <NODE nodename="IOBox (String)" componentmode="InABox" id="155" systemname="IOBox (String)">
+   <BOUNDS type="Node" left="7785" top="4440" width="5190" height="270">
+   </BOUNDS>
+   <BOUNDS type="Box" left="7785" top="4440" width="2280" height="450">
+   </BOUNDS>
+   <PIN pinname="Input String" visible="0" slicecount="1" values="|RequestFormat seems to be ignored by most API&apos;s.|">
+   </PIN>
+   <PIN pinname="Output String" visible="0">
+   </PIN>
+   <PIN pinname="Show Grid" slicecount="1" values="0">
+   </PIN>
+   <PIN pinname="String Type" slicecount="1" values="MultiLine">
+   </PIN>
+   </NODE>
+   <LINK srcnodeid="151" srcpinname="Output" dstnodeid="106" dstpinname="Message Body" linkstyle="VHV">
+   <LINKPOINT x="9270" y="6938">
+   </LINKPOINT>
+   <LINKPOINT x="5850" y="6938">
+   </LINKPOINT>
+   </LINK>
    </PATCH>
