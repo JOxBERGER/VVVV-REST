@@ -8,17 +8,12 @@ using System.ComponentModel.Composition;
 //using System.Collections.Generic;
 //using VVVV.PluginInterfaces.V1;
 using VVVV.PluginInterfaces.V2;
-using VVVV.Core.Logging;
 
+using VVVV.Core.Logging;
 using RestSharp;
 using RestSharp.Authenticators;
-//using RestSharp.Authenticators.OAuth;
-
-
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-
 
 #endregion usings
 
@@ -32,13 +27,31 @@ namespace VVVV.Nodes
 {
 	public struct FileUpload
 	{
-		public string FileParameterName;
-		public Stream FileContent;
+		public string FileType;
+		public Stream FileContent; //byte[] FileContent;
 		public string FileName; 
 	}
 	
+	public struct KeyValueParameter
+	{
+		public string Value;
+		public string Key;
+	}
+
+	public struct Body
+	{
+		public string Type;
+		public string Data;
+	}
+	
+	public struct Header
+	{
+		public string HeaderName;
+		public string HeaderValue;
+	}
+
 	#region PluginInfo
-	[PluginInfo(Name = "HTTP REST", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+	[PluginInfo(Name = "HTTP-REST", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net", AutoEvaluate = true)]
 	#endregion PluginInfo
 	public class HTTP_RESTNode : IPluginEvaluate
 	{
@@ -51,45 +64,20 @@ namespace VVVV.Nodes
 		[Input("BaseURL", StringType = StringType.URL, DefaultString = "http://localhost")]
 		public IDiffSpread<string> FInputBaseURL;
 		
-		[Input("MimeType", DefaultString ="")]
-		public ISpread<string> FInputMimeType;
+		[Input("Header")]
+		public ISpread<ISpread<Header>> FInputHeader;
 		
-		[Input("RequestFormat", DefaultEnumEntry = "JSON")]
-		public ISpread<RestSharp.DataFormat> FInputRequestFormat;
+		[Input("Key Value Parameter")]
+		public ISpread<ISpread<KeyValueParameter>> FInputKeyValueParameter;
 		
-		[Input("Message Body", DefaultString = null)]
-		public ISpread<string> FInputMessageBody;
+		[Input("Body")]
+		public ISpread<Body> FInputBody;
 		
 		[Input("File Upload")]
-		public ISpread<FileUpload> FInputFileUpload;
+		public ISpread<ISpread<FileUpload>> FInputFileUpload;
 		
-		/*
-		[Input("File", Visibility = PinVisibility.Hidden)]
-		public ISpread<Stream> FInputFile;
-		
-		[Input("File Parameter Name", DefaultString = "file", Visibility = PinVisibility.Hidden)]
-		public ISpread<string> FInputFileParameterName;
-		
-		[Input("File Name", DefaultString = "vvvv.file", Visibility = PinVisibility.Hidden)]
-		public ISpread<string> FInputFileName;
-		*/
-		
-		//[Input("File Path", DefaultString = "/files/", Visibility = PinVisibility.Hidden)]
-		//public ISpread<string> FInputFilePath;
-
 		[Input("Authentication")]
 		public ISpread<IAuthenticator> FInputAuthentication;
-
-		/*
-		[Input("Use Basic Authentication", IsBang = false, DefaultValue = 0, IsSingle = false)]
-		public IDiffSpread<bool> FInputUseBasicAuthentication;
-		
-		[Input("Username", DefaultString = null)]
-		public ISpread<string> FInputUsername;
-		
-		[Input("Password", DefaultString = null)]
-		public ISpread<string> FInputPassword;
-		*/
 		
 		[Input("HttpMethod", DefaultEnumEntry = "GET")]
 		public ISpread<RestSharp.Method> FInputHttpMethod;
@@ -126,10 +114,8 @@ namespace VVVV.Nodes
 		readonly Spread<RestRequest> request = new Spread<RestRequest>();
 		readonly Spread<IRestResponse> response = new Spread<IRestResponse>();
 		
-		//when dealing with byte streams (what we call Raw in the GUI) it's always
-		//good to have a byte buffer around. we'll use it when copying the data.
-		//readonly byte[] FBuffer = new byte[1];
-
+		
+		
 		#endregion fields & pins-
 		
 		// Called when this plugin was created
@@ -138,9 +124,6 @@ namespace VVVV.Nodes
 			// Do any initialization logic here. In this example we won't need to
 			// do anything special.
 			FLogger.Log(LogType.Message, "Initialized HTTP REST Node.");
-			
-			//start with an empty stream output
-			//FRAWOutputResponse.SliceCount = 0;
 		}
 
 		// Called when this plugin gets deleted
@@ -157,17 +140,17 @@ namespace VVVV.Nodes
 			}
 		}
 		
+		
 		//called when data for any output pin is requested
 		public void Evaluate(int SpreadMax)
 		{	
+			SpreadMax = FInputBaseURL.SliceCount;
+			
 			// Set the slice counts of our outputs.
-			//FOutputResponse.SliceCount = SpreadMax;
 			FOutputHeader.SliceCount = SpreadMax;
 			FOutputSuccess.SliceCount = SpreadMax;
 			FOutputStatus.SliceCount = SpreadMax;
-			FRAWOutputResponse.SliceCount = SpreadMax;
-			//var FInputAuthentication.SliceCount = SpreadMax;
-			
+			FRAWOutputResponse.ResizeAndDispose(SpreadMax, () => new MemoryStream());			
 			
 			// Set slice count for Task and cancelation Tokens.
 			FTasks.SliceCount = SpreadMax;
@@ -180,7 +163,6 @@ namespace VVVV.Nodes
 			request.SliceCount = SpreadMax;
 			response.SliceCount = SpreadMax;
 			
-			
 			//ResizeAndDispose will adjust the spread length and thereby call
 			//the given constructor function for new slices and Dispose on old
 			//slices.
@@ -188,7 +170,7 @@ namespace VVVV.Nodes
 			
 			// start doing stuff foreach spread item
 			for (int i = 0; i < SpreadMax; i++)
-			{
+			{				
 				// store i to a new variable so it won't change when tasks are running over longer period.
 				// this is important to asign results to the right slice position.
 				int index = i;
@@ -200,7 +182,6 @@ namespace VVVV.Nodes
 				
 				if (FInputExecute[index])
 				{
-					
 					// Clear Fields
 					//FOutputResponse[index] = "";
 					FOutputHeader[index] = "";
@@ -227,38 +208,106 @@ namespace VVVV.Nodes
 						// >>> Start the Work
 						try 
 						{
+							var AddParameter = false;
+							var AddBody = false;
 							
+							//##################
+							//## Setup Client ##
 							// Setup RestClient 
 							client[index] = new RestClient();
 							client[index].BaseUrl = new Uri(FInputBaseURL[index]);
-							// Setup Authentication
-							
+							client[index].ClearHandlers();
+
+							//####################
+							//## Authentication ##
+							//client[index].Authenticator = new OAuthAuthenticator();
 							if(FInputAuthentication[index] != null)
 							{
 								FLogger.Log(LogType.Debug, "Auth!");
 								client[index].Authenticator = FInputAuthentication[index];//new HttpBasicAuthenticator(FInputUsername[index], FInputPassword[index]);
 							}
-							
-							
 							FOutputStatus[index] = getTimestamp()+" - Client Setup.\n";
 							
-							// Setup Request
+							
+							//###################
+							//## Setup Request ##
 							request[index] = new RestRequest();
 							request[index].Method = FInputHttpMethod[index]; // REST method eg. POST, GET, DELETE etc.
-							request[index].RequestFormat = FInputRequestFormat[index]; // Request Format Xml, Json
-							request[index].AddParameter(FInputMimeType[index], FInputMessageBody[index], ParameterType.RequestBody); // Mimeype and Body
+							//request[index].Parameters.Clear();
 							
-							if(FInputFileUpload[index].FileContent != null)
+							
+							//#################
+							//## Adding Body ##
+							if (FInputBody[index].Data != null)
 							{
-								FLogger.Log(LogType.Debug, "File Upload !");
-								request[index].AddFile(FInputFileUpload[index].FileParameterName, ReadFully(FInputFileUpload[index].FileContent), FInputFileUpload[index].FileName, FInputMimeType[index]); // not sure about the parameter type here ?								
+								FLogger.Log(LogType.Message, "Body length: " + FInputBody[index].Data.Length);
+								AddBody = true;
+								request[index].AddParameter(FInputBody[index].Type, FInputBody[index].Data, ParameterType.RequestBody);
 							}
 							
-							// Execute the Request
-							//response[index] = client[index].ExecuteAsync(request[index]); // TODO Add cancleation token here?
-							//var response = client.Execute(request);
-							response[index] = client[index].Execute(request[index]);	
-							//response[index] = client[index].Delete(request[index]);
+							
+							//#################
+							//## Adding File ##
+							var FileData = FInputFileUpload[index];	
+							for (int ii=0; ii<FileData.SliceCount; ii++)
+							{
+								if(FileData[ii].FileContent != null)
+								{
+									FLogger.Log(LogType.Message, "File Uplaod! Name:"+FileData[ii].FileName+" File Type:"+FileData[ii].FileType);
+									//request[index].AddFile(FileData[ii].FileName, FileData[ii].FileContent, FileData[ii].FileName, FileData[ii].FileType);
+									request[index].AddFile("name", BytestreamToArray(FileData[ii].FileContent), "name");
+									//request[index].AddParameter("", BytestreamToArray(FileData[ii].FileContent), ParameterType.RequestBody);
+								}				
+							}
+
+							//request[index].Parameters.Clear();
+							
+							//#######################
+							//## Adding Parameters ##
+							var Paramters = FInputKeyValueParameter[index];							
+							for (int ii=0; ii<Paramters.SliceCount; ii++)
+							{
+								if(Paramters[ii].Key != null)
+								{
+									FLogger.Log(LogType.Message, "Parameter Key: " + Paramters[ii].Key +"  Value: "+ Paramters[ii].Value);
+									AddParameter = true;
+									request[index].AddParameter(Paramters[ii].Key, Paramters[ii].Value); // works!
+								}
+							}							
+							
+							
+							//###################
+							//## Adding Header ##
+							var Headers = FInputHeader[index];							
+							for (int ii=0; ii<Headers.SliceCount; ii++)
+							{
+								if(Headers[ii].HeaderName != null)
+								{
+									FLogger.Log(LogType.Message, "Header Name: " + Headers[ii].HeaderName +"  Value: "+ Headers[ii].HeaderValue);
+									request[index].AddHeader(Headers[ii].HeaderName, Headers[ii].HeaderValue);
+									//request[index].AddHeader(Headers[ii].HeaderName, Headers[ii].HeaderValue);
+								}
+							}
+							
+							//##################################
+							//## Check for Body and Parameter ##
+							/* Adding Parameter and Body at once is not possible. See also: https://groups.google.com/forum/#!topic/restsharp/3NVVMridDJ0 */
+							if (AddParameter&&AddBody)
+							{
+								var warning = "\nSorry. You can't add Body and Parameter at once due to limitations of the used library. \n Body data will be ignored.\n\n";
+								FLogger.Log(LogType.Error, "HTTP REST Node: " + warning);
+								FOutputStatus[index] += warning; 
+							}
+					
+							//request[index].Parameters.Clear();
+							
+							string infor = request[index].Files.ToString();
+							FLogger.Log(LogType.Error, "FileCount: " + request[index].Files.Count);
+							
+							//#####################
+							//## Execute Request ##							
+							response[index] = client[index].Execute(request[index]);// TODO Add cancleation token here?
+							
 						}
 						catch (Exception e)
 						{
@@ -311,7 +360,6 @@ namespace VVVV.Nodes
 							FOutputSuccess[index] = false;							
 						}		
 						
-						
 					},ct[index],
 					// Here we can specify some options under which circumstances the
 					// continuation should run. In this case we only want it to run if
@@ -326,7 +374,7 @@ namespace VVVV.Nodes
 		
 		
 		#region PluginInfo
-		[PluginInfo(Name = "HTTP Basic Authentication", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		[PluginInfo(Name = "HTTP_Basic_Authentication", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 		#endregion PluginInfo
 		public class HTTP_Basic_AuthenticationNode : IPluginEvaluate
 		{		
@@ -359,11 +407,14 @@ namespace VVVV.Nodes
 		}
 
 		#region PluginInfo
-		[PluginInfo(Name = "HTTP OAuth 01", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		[PluginInfo(Name = "HTTP OAuth Step 1. Get Request Token", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 		#endregion PluginInfo
-		public class HTTP_OAuth_01Node : IPluginEvaluate
+		public class HTTP_OAuth_Step1_Get_Request_Token : IPluginEvaluate
 		{		
 			#region fields & pins
+			[Input("Url", DefaultString = null)]
+			public ISpread<string> FInputUrl;
+			
 			[Input("Consumer Key", DefaultString = null)]
 			public ISpread<string> FInputConsumerKey;
 			
@@ -373,17 +424,8 @@ namespace VVVV.Nodes
 			[Input("Execute", IsBang = true, DefaultValue = 0, IsSingle = false)]
 			public IDiffSpread<bool> FInputExecute;
 			
-			[Output("Verification URL")]
-			public ISpread<string> FOutputVerificationUrl;
-			
-			[Output("Token")]
-			public ISpread<string> FOutputToken;
-			
-			[Output("Token Secret")]
-			public ISpread<string> FOutputTokenSecret;
-			
-			[Output("Client")]
-			public ISpread<RestClient> FOutputClient;
+			[Output("Content")]
+			public ISpread<string> FOutputContent;
 			
 			[Import()]
 			public ILogger FLogger;
@@ -392,56 +434,37 @@ namespace VVVV.Nodes
 			public void Evaluate(int SpreadMax)
 			{	
 				// Set the slice counts of our outputs.
-				FOutputVerificationUrl.SliceCount = SpreadMax;
+				FOutputContent.SliceCount = SpreadMax;
 				
 				// start doing stuff foreach spread item
 				for (int i = 0; i < SpreadMax; i++)
 				{
 					if (FInputExecute[i])
 					{
-						FOutputVerificationUrl[i]=null;
-
-						var client = new RestClient("https://api.twitter.com");
-						client.Authenticator = OAuth1Authenticator.ForRequestToken(FInputConsumerKey[i], FInputConsumerSecret[i], "http://explorative-environments.net/");
+						FOutputContent[i] = null;
 						
-						var request = new RestRequest("/oauth/request_token", Method.POST);
+						var client = new RestClient(FInputUrl[i]);
+						
+						client.Authenticator = OAuth1Authenticator.ForRequestToken(FInputConsumerKey[i], FInputConsumerSecret[i]);
+						
+						var request = new RestRequest("", Method.POST);
 						var response = client.Execute(request);
-						
-						//var qs = HttpUtility.ParseQueryString(response.Content);
-						string _token = null;
-						Regex findToken1 = new Regex(@"oauth_token=(.*?)&");
-						Match matchedToken1 = findToken1.Match(response.Content);
-						if (matchedToken1.Success)
-						{
-							_token=matchedToken1.Groups[1].Value;
-							FOutputToken[i] = _token;
-						}
-						
-						string _secret_token = null; 
-						Regex findToken2 = new Regex(@"oauth_token_secret=(.*?)&");
-						Match matchedToken2 = findToken2.Match(response.Content);
-						if (matchedToken2.Success)
-						{
-							_secret_token=matchedToken2.Groups[1].Value;
-							FOutputTokenSecret[i] =  _secret_token;
-						}
-						request = new RestRequest("oauth/authorize");
-						request.AddParameter("oauth_token", _token);
-
-						var url = client.BuildUri(request).ToString();	
-						FOutputVerificationUrl[i] = url;
-						FOutputClient[i] = client;
+						FOutputContent[i] = response.Content;
 					}					
 				}		
 			}	
 		}
 		
 		#region PluginInfo
-		[PluginInfo(Name = "HTTP OAuth 02", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		[PluginInfo(Name = "HTTP OAuth Step 2. Get Access", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 		#endregion PluginInfo
-		public class HTTP_OAuth_02Node : IPluginEvaluate
+		public class HTTP_OAuth_Step2_Get_Access : IPluginEvaluate
 		{		
 			#region fields & pins
+			[Input("Url", DefaultString = null)]
+			public ISpread<string> FInputUrl;
+			
+			
 			[Input("Consumer Key", DefaultString = null)]
 			public ISpread<string> FInputConsumerKey;
 			
@@ -457,17 +480,8 @@ namespace VVVV.Nodes
 			[Input("Token Verification", DefaultString = null)]
 			public ISpread<string> FInputTokenVerification;
 			
-			[Input("Client")]
-			public ISpread<RestClient> FInputClient;
-			
 			[Input("Execute", IsBang = true, DefaultValue = 0, IsSingle = false)]
 			public IDiffSpread<bool> FInputExecute;
-			
-			[Output("Token")]
-			public ISpread<string> FOutputToken;
-			
-			[Output("Token Secret")]
-			public ISpread<string> FOutputTokenSecret;
 			
 			[Output("Output")]
 			public ISpread<string> FOutput;
@@ -480,44 +494,24 @@ namespace VVVV.Nodes
 			{	
 				// Set the slice counts of our outputs.
 				FOutput.SliceCount = SpreadMax;
-				FOutputToken.SliceCount = SpreadMax;
-				FOutputTokenSecret.SliceCount = SpreadMax;
 				
 				// start doing stuff foreach spread item
 				for (int i = 0; i < SpreadMax; i++)
 				{
+					
 					if (FInputExecute[i])
 					{
 						FOutput[i]=null;
 						
-						var request = new RestRequest("oauth/access_token", Method.POST);
-						FInputClient[i].Authenticator = OAuth1Authenticator.ForAccessToken(FInputConsumerKey[i], FInputConsumerSecret[i], FInputToken[i], FInputTokenSecret[i], FInputTokenVerification[i]);
-            			var response = FInputClient[i].Execute(request);
+						var client = new RestClient(FInputUrl[i]);
+						var request = new RestRequest("", Method.POST);
+						client.Authenticator = OAuth1Authenticator.ForAccessToken(FInputConsumerKey[i], FInputConsumerSecret[i], FInputToken[i], FInputTokenSecret[i], FInputTokenVerification[i]);
+						var response = client.Execute(request);
 
-						
-						//var qs = HttpUtility.ParseQueryString(response.Content);
-						string _token = null;
-						Regex findToken1 = new Regex(@"oauth_token=(.*?)&");
-						Match matchedToken1 = findToken1.Match(response.Content);
-						if (matchedToken1.Success)
-						{
-							_token=matchedToken1.Groups[1].Value;
-							FOutputToken[i] = _token;
-						}
-						
-						string _secret_token = null; 
-						Regex findToken2 = new Regex(@"oauth_token_secret=(.*?)&");
-						Match matchedToken2 = findToken2.Match(response.Content);
-						if (matchedToken2.Success)
-						{
-							_secret_token=matchedToken2.Groups[1].Value;
-							FOutputTokenSecret[i] = _secret_token;
-						}
-						
 						//request = new RestRequest("account/verify_credentials.xml");
-            			FInputClient[i].Authenticator = OAuth1Authenticator.ForAccessToken(FInputConsumerKey[i], FInputConsumerSecret[i], _token, _secret_token);
+						//client.Authenticator = OAuth1Authenticator.ForAccessToken(FInputConsumerKey[i], FInputConsumerSecret[i], _token, _secret_token);
 
-			            //response = FInputClient[i].Execute(request);
+						//response = FInputClient[i].Execute(request);
 
 						//var url = FInputClient[i].BuildUri(request).ToString();	
 						FOutput[i] = response.Content;	
@@ -528,9 +522,9 @@ namespace VVVV.Nodes
 
 		
 		#region PluginInfo
-		[PluginInfo(Name = "HTTP OAuth", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		[PluginInfo(Name = "HTTP OAuth 1.0 Authentication", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")] //AutoEvaluate = true
 		#endregion PluginInfo
-		public class HTTP_OAuthNode : IPluginEvaluate
+		public class HTTP_OAuth_1_Authentication : IPluginEvaluate
 		{		
 			#region fields & pins
 			[Input("Consumer Key", DefaultString = null)]
@@ -544,7 +538,7 @@ namespace VVVV.Nodes
 			
 			[Input("Token Secret", DefaultString = null)]
 			public ISpread<string> FInputTokenSecret;
-						
+			
 			[Output("Token")]
 			public ISpread<string> FOutputToken;
 			
@@ -556,7 +550,7 @@ namespace VVVV.Nodes
 			
 			[Output("Authentication")]
 			public ISpread<IAuthenticator> FOutputAuthentication;
-						
+			
 			[Import()]
 			public ILogger FLogger;
 			#endregion
@@ -570,17 +564,18 @@ namespace VVVV.Nodes
 				// start doing stuff foreach spread item
 				for (int i = 0; i < SpreadMax; i++)
 				{
-						FOutput[i]=null;
-						FOutputAuthentication[i] = null;
-						//var request = new RestRequest("oauth/access_token", Method.POST);
-						FOutputAuthentication[i]= OAuth1Authenticator.ForProtectedResource(FInputConsumerKey[i], FInputConsumerSecret[i], FInputToken[i], FInputTokenSecret[i]);
-						//FOutput[i] = FOutputAuthentication[i].GetType().ToString();
+					FOutput[i]=null;
+					FOutputAuthentication[i] = null;
+					//var request = new RestRequest("oauth/access_token", Method.POST);
+					FOutputAuthentication[i]= OAuth1Authenticator.ForProtectedResource(FInputConsumerKey[i], FInputConsumerSecret[i], FInputToken[i], FInputTokenSecret[i]);
+					//FOutputAuthentication[i] = OAuth2AuthorizationRequestHeaderAuthenticator(	
+					FOutput[i] = FOutputAuthentication[i].ToString();
 				}		
 			}	
 		}
-
+		
 		#region PluginInfo
-		[PluginInfo(Name = "HTTP Attach File", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		[PluginInfo(Name = "HTTP_Attach_File", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 		#endregion PluginInfo
 		public class HTTP_Attach_FileNode : IPluginEvaluate
 		{		
@@ -588,8 +583,8 @@ namespace VVVV.Nodes
 			[Input("File")]
 			public ISpread<Stream> FInputFile;
 			
-			[Input("File Parameter Name", DefaultString = "file")]
-			public ISpread<string> FInputFileParameterName;
+			[Input("File Type", DefaultString = "file")]
+			public ISpread<string> FInputFileType;
 			
 			[Input("File Name", DefaultString = "vvvv.file")]
 			public ISpread<string> FInputFileName;
@@ -604,21 +599,135 @@ namespace VVVV.Nodes
 
 			public void Evaluate(int SpreadMax)
 			{	
+					// Set the slice counts of our outputs.
+					FOutputFileUpload.SliceCount = SpreadMax;
+					
+					// start doing stuff foreach spread item
+					for (int i = 0; i < SpreadMax; i++)
+					{
+						// When working with streams make sure to reset their position
+						// before reading from them.
+						var byteStream = FInputFile[i];
+						byteStream.Position = 0; // resetting the byte stream position is important otherwise the stream won't be read in the next frame!
+						
+						var newFile = new FileUpload();
+						newFile.FileType = FInputFileType[i];
+						newFile.FileContent = byteStream; //BytestreamToArray(byteStream);
+						newFile.FileName = FInputFileName[i];
+						FOutputFileUpload[i] = newFile;
+					}
+					//FStreamOut.Flush(true);
+					FOutputFileUpload.Flush(true);
+			}	
+		}
+
+		#region PluginInfo
+		[PluginInfo(Name = "HTTP_Add_KeyValueParameter", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		#endregion PluginInfo
+		public class HTTP_Add_KeyValueParameter : IPluginEvaluate
+		{		
+			#region fields & pins		
+			
+			[Input("Key", DefaultString = "Key")]
+			public ISpread<string> FInputParameterKey;
+			
+			[Input("Value", DefaultString = "Value")]
+			public ISpread<string> FInputParameterValue;
+			
+			[Output("Key Value Parameter")]
+			public ISpread<KeyValueParameter> FOutputParameter;
+
+			[Import()]
+			public ILogger FLogger;
+			#endregion
+
+			public void Evaluate(int SpreadMax)
+			{	
 				// Set the slice counts of our outputs.
-				FOutputFileUpload.SliceCount = SpreadMax;
+				FOutputParameter.SliceCount = SpreadMax;
 				
 				// start doing stuff foreach spread item
 				for (int i = 0; i < SpreadMax; i++)
 				{
-					FileUpload newFile;
-					newFile.FileParameterName = FInputFileParameterName[i];
-					newFile.FileContent = FInputFile[i];
-					newFile.FileName = FInputFileName[i];
-					FOutputFileUpload[i] = newFile;
-				}		
+					var newParameter = new KeyValueParameter();
+					newParameter.Key = FInputParameterKey[i];
+					newParameter.Value = FInputParameterValue[i];
+					FOutputParameter[i] = newParameter;
+				}
 			}	
 		}
 		
+		#region PluginInfo
+		[PluginInfo(Name = "HTTP_Add_Header", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		#endregion PluginInfo
+		public class HTTP_Add_Header : IPluginEvaluate
+		{		
+			#region fields & pins		
+			
+			[Input("Header Name", DefaultString = "Header Name")]
+			public ISpread<string> FInputHeaderName;
+			
+			[Input("Header Value", DefaultString = "Header Value")]
+			public ISpread<string> FInputHeaderValue;
+			
+			[Output("Key Value Parameter")]
+			public ISpread<Header> FOutputHeader;
+
+			[Import()]
+			public ILogger FLogger;
+			#endregion
+
+			public void Evaluate(int SpreadMax)
+			{	
+				// Set the slice counts of our outputs.
+				FOutputHeader.SliceCount = SpreadMax;
+				
+				// start doing stuff foreach spread item
+				for (int i = 0; i < SpreadMax; i++)
+				{
+					var newHeader = new Header();
+					newHeader.HeaderName = FInputHeaderName[i];
+					newHeader.HeaderValue = FInputHeaderValue[i];
+					FOutputHeader[i] = newHeader;
+				}
+			}	
+		}
+		
+		#region PluginInfo
+		[PluginInfo(Name = "HTTP_Add_Body", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		#endregion PluginInfo
+		public class HTTP_Add_Body : IPluginEvaluate
+		{		
+			#region fields & pins		
+			
+			[Input("Key", DefaultString = "text/plain")]
+			public ISpread<string> FInputParameterType;
+			
+			[Input("Value", DefaultString = "Text")]
+			public ISpread<string> FInputParameterData;
+			
+			[Output("Body")]
+			public ISpread<Body> FOutputBody;
+
+			[Import()]
+			public ILogger FLogger;
+			#endregion
+
+			public void Evaluate(int SpreadMax)
+			{		
+				// Set the slice counts of our outputs.
+				FOutputBody.SliceCount = SpreadMax;
+				
+				// start doing stuff foreach spread item
+				for (int i = 0; i < SpreadMax; i++)
+				{
+					var newBody = new Body();
+					newBody.Type= FInputParameterType[i];
+					newBody.Data = FInputParameterData[i];
+					FOutputBody[i] = newBody;
+				}
+			}	
+		}
 		
 		// Worker and Helper Methods 
 		private void CancelRunningTasks(int index)
@@ -644,19 +753,12 @@ namespace VVVV.Nodes
 			return timeStamp;
 		}
 		
-		public static byte[] ReadFully(Stream input)
+		public static byte[] BytestreamToArray(Stream input)
 		{
-			byte[] buffer = new byte[16*1024];
-			using (MemoryStream ms = new MemoryStream())
-			{
-				int read;
-				while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
-				{
-					ms.Write(buffer, 0, read);
-				}
-				return ms.ToArray();
-			}
+			byte[] byteArray;
+			var br = new BinaryReader(input);
+			byteArray = br.ReadBytes((int)input.Length);
+			return byteArray;
 		}
-		//FLogger.Log(LogType.Debug, "Logging to Renderer (TTY)");
 	}
 }
