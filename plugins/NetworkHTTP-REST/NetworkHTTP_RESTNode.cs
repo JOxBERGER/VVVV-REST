@@ -8,11 +8,17 @@ using System.ComponentModel.Composition;
 //using System.Collections.Generic;
 //using VVVV.PluginInterfaces.V1;
 using VVVV.PluginInterfaces.V2;
-
 using VVVV.Core.Logging;
+
 using RestSharp;
+using RestSharp.Authenticators;
+//using RestSharp.Authenticators.OAuth;
+
+
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
+
 
 #endregion usings
 
@@ -32,7 +38,7 @@ namespace VVVV.Nodes
 	}
 	
 	#region PluginInfo
-	[PluginInfo(Name = "HTTP-REST", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+	[PluginInfo(Name = "HTTP REST", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 	#endregion PluginInfo
 	public class HTTP_RESTNode : IPluginEvaluate
 	{
@@ -225,14 +231,14 @@ namespace VVVV.Nodes
 							// Setup RestClient 
 							client[index] = new RestClient();
 							client[index].BaseUrl = new Uri(FInputBaseURL[index]);
-							
 							// Setup Authentication
-							//client[index].Authenticator = new OAuthAuthenticator();
+							
 							if(FInputAuthentication[index] != null)
 							{
 								FLogger.Log(LogType.Debug, "Auth!");
 								client[index].Authenticator = FInputAuthentication[index];//new HttpBasicAuthenticator(FInputUsername[index], FInputPassword[index]);
 							}
+							
 							
 							FOutputStatus[index] = getTimestamp()+" - Client Setup.\n";
 							
@@ -242,30 +248,11 @@ namespace VVVV.Nodes
 							request[index].RequestFormat = FInputRequestFormat[index]; // Request Format Xml, Json
 							request[index].AddParameter(FInputMimeType[index], FInputMessageBody[index], ParameterType.RequestBody); // Mimeype and Body
 							
-							
-							//FLogger.Log(LogType.Debug, "file ::::>"+FInputFileUpload[index].FileContent.Length);
-							// ReadFully(FInputFile[i]);
-							
 							if(FInputFileUpload[index].FileContent != null)
 							{
 								FLogger.Log(LogType.Debug, "File Upload !");
 								request[index].AddFile(FInputFileUpload[index].FileParameterName, ReadFully(FInputFileUpload[index].FileContent), FInputFileUpload[index].FileName, FInputMimeType[index]); // not sure about the parameter type here ?								
 							}
-							
-							
-							/*
-							if (FInputFile[index].Length > 0)
-							{
-								FLogger.Log(LogType.Debug, "--- FileUpload");
-								request[index].AddFile(FInputFileParameterName[index], ReadFully(FInputFile[index]), FInputFileName[index], FInputMimeType[index]); // not sure about the parameter type here ?								
-							}
-							*/
-
-							//IRestRequest some = RestRequest.AddFile(FInputFileParameterName[index], ReadFully(FInputFile[index]), FInputFileName[index], FInputMimeType[index]); // not sure about the parameter type here ?
-							
-							//request[index].FInputRequestOptions[index];
-							
-							//FOutputStatus[index] = getTimestamp()+" - Request Setup.\n";
 							
 							// Execute the Request
 							//response[index] = client[index].ExecuteAsync(request[index]); // TODO Add cancleation token here?
@@ -339,7 +326,7 @@ namespace VVVV.Nodes
 		
 		
 		#region PluginInfo
-		[PluginInfo(Name = "HTTP_Basic_Authentication", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		[PluginInfo(Name = "HTTP Basic Authentication", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 		#endregion PluginInfo
 		public class HTTP_Basic_AuthenticationNode : IPluginEvaluate
 		{		
@@ -372,19 +359,31 @@ namespace VVVV.Nodes
 		}
 
 		#region PluginInfo
-		[PluginInfo(Name = "HTTP_OAuth_Authentication", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		[PluginInfo(Name = "HTTP OAuth 01", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 		#endregion PluginInfo
-		public class HTTP_OAuth_AuthenticationNode : IPluginEvaluate
+		public class HTTP_OAuth_01Node : IPluginEvaluate
 		{		
 			#region fields & pins
-			[Input("Username", DefaultString = null)]
-			public ISpread<string> FInputUsername;
+			[Input("Consumer Key", DefaultString = null)]
+			public ISpread<string> FInputConsumerKey;
 			
-			[Input("Password", DefaultString = null)]
-			public ISpread<string> FInputPassword;
+			[Input("Consumer Secret", DefaultString = null)]
+			public ISpread<string> FInputConsumerSecret;
 			
-			[Output("Authentication")]
-			public ISpread<IAuthenticator> FOutputAuthentication;
+			[Input("Execute", IsBang = true, DefaultValue = 0, IsSingle = false)]
+			public IDiffSpread<bool> FInputExecute;
+			
+			[Output("Verification URL")]
+			public ISpread<string> FOutputVerificationUrl;
+			
+			[Output("Token")]
+			public ISpread<string> FOutputToken;
+			
+			[Output("Token Secret")]
+			public ISpread<string> FOutputTokenSecret;
+			
+			[Output("Client")]
+			public ISpread<RestClient> FOutputClient;
 			
 			[Import()]
 			public ILogger FLogger;
@@ -393,31 +392,205 @@ namespace VVVV.Nodes
 			public void Evaluate(int SpreadMax)
 			{	
 				// Set the slice counts of our outputs.
-				FOutputAuthentication.SliceCount = SpreadMax;
+				FOutputVerificationUrl.SliceCount = SpreadMax;
 				
 				// start doing stuff foreach spread item
 				for (int i = 0; i < SpreadMax; i++)
 				{
-					//client[i] = new RestClient();
-					//FOutputAuthentication[i] = new HttpBasicAuthenticator(FInputUsername[i], FInputPassword[i]);
-					//FOutputAuthentication[i] = new OAuthAuthenticator();
-					
+					if (FInputExecute[i])
+					{
+						FOutputVerificationUrl[i]=null;
+
+						var client = new RestClient("https://api.twitter.com");
+						client.Authenticator = OAuth1Authenticator.ForRequestToken(FInputConsumerKey[i], FInputConsumerSecret[i], "http://explorative-environments.net/");
+						
+						var request = new RestRequest("/oauth/request_token", Method.POST);
+						var response = client.Execute(request);
+						
+						//var qs = HttpUtility.ParseQueryString(response.Content);
+						string _token = null;
+						Regex findToken1 = new Regex(@"oauth_token=(.*?)&");
+						Match matchedToken1 = findToken1.Match(response.Content);
+						if (matchedToken1.Success)
+						{
+							_token=matchedToken1.Groups[1].Value;
+							FOutputToken[i] = _token;
+						}
+						
+						string _secret_token = null; 
+						Regex findToken2 = new Regex(@"oauth_token_secret=(.*?)&");
+						Match matchedToken2 = findToken2.Match(response.Content);
+						if (matchedToken2.Success)
+						{
+							_secret_token=matchedToken2.Groups[1].Value;
+							FOutputTokenSecret[i] =  _secret_token;
+						}
+						request = new RestRequest("oauth/authorize");
+						request.AddParameter("oauth_token", _token);
+
+						var url = client.BuildUri(request).ToString();	
+						FOutputVerificationUrl[i] = url;
+						FOutputClient[i] = client;
+					}					
 				}		
 			}	
 		}
 		
 		#region PluginInfo
-		[PluginInfo(Name = "HTTP_Attach_File", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		[PluginInfo(Name = "HTTP OAuth 02", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		#endregion PluginInfo
+		public class HTTP_OAuth_02Node : IPluginEvaluate
+		{		
+			#region fields & pins
+			[Input("Consumer Key", DefaultString = null)]
+			public ISpread<string> FInputConsumerKey;
+			
+			[Input("Consumer Secret", DefaultString = null)]
+			public ISpread<string> FInputConsumerSecret;
+			
+			[Input("Token", DefaultString = null)]
+			public ISpread<string> FInputToken;
+			
+			[Input("Token Secret", DefaultString = null)]
+			public ISpread<string> FInputTokenSecret;
+			
+			[Input("Token Verification", DefaultString = null)]
+			public ISpread<string> FInputTokenVerification;
+			
+			[Input("Client")]
+			public ISpread<RestClient> FInputClient;
+			
+			[Input("Execute", IsBang = true, DefaultValue = 0, IsSingle = false)]
+			public IDiffSpread<bool> FInputExecute;
+			
+			[Output("Token")]
+			public ISpread<string> FOutputToken;
+			
+			[Output("Token Secret")]
+			public ISpread<string> FOutputTokenSecret;
+			
+			[Output("Output")]
+			public ISpread<string> FOutput;
+			
+			[Import()]
+			public ILogger FLogger;
+			#endregion
+
+			public void Evaluate(int SpreadMax)
+			{	
+				// Set the slice counts of our outputs.
+				FOutput.SliceCount = SpreadMax;
+				FOutputToken.SliceCount = SpreadMax;
+				FOutputTokenSecret.SliceCount = SpreadMax;
+				
+				// start doing stuff foreach spread item
+				for (int i = 0; i < SpreadMax; i++)
+				{
+					if (FInputExecute[i])
+					{
+						FOutput[i]=null;
+						
+						var request = new RestRequest("oauth/access_token", Method.POST);
+						FInputClient[i].Authenticator = OAuth1Authenticator.ForAccessToken(FInputConsumerKey[i], FInputConsumerSecret[i], FInputToken[i], FInputTokenSecret[i], FInputTokenVerification[i]);
+            			var response = FInputClient[i].Execute(request);
+
+						
+						//var qs = HttpUtility.ParseQueryString(response.Content);
+						string _token = null;
+						Regex findToken1 = new Regex(@"oauth_token=(.*?)&");
+						Match matchedToken1 = findToken1.Match(response.Content);
+						if (matchedToken1.Success)
+						{
+							_token=matchedToken1.Groups[1].Value;
+							FOutputToken[i] = _token;
+						}
+						
+						string _secret_token = null; 
+						Regex findToken2 = new Regex(@"oauth_token_secret=(.*?)&");
+						Match matchedToken2 = findToken2.Match(response.Content);
+						if (matchedToken2.Success)
+						{
+							_secret_token=matchedToken2.Groups[1].Value;
+							FOutputTokenSecret[i] = _secret_token;
+						}
+						
+						//request = new RestRequest("account/verify_credentials.xml");
+            			FInputClient[i].Authenticator = OAuth1Authenticator.ForAccessToken(FInputConsumerKey[i], FInputConsumerSecret[i], _token, _secret_token);
+
+			            //response = FInputClient[i].Execute(request);
+
+						//var url = FInputClient[i].BuildUri(request).ToString();	
+						FOutput[i] = response.Content;	
+					}					
+				}		
+			}	
+		}
+
+		
+		#region PluginInfo
+		[PluginInfo(Name = "HTTP OAuth", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
+		#endregion PluginInfo
+		public class HTTP_OAuthNode : IPluginEvaluate
+		{		
+			#region fields & pins
+			[Input("Consumer Key", DefaultString = null)]
+			public ISpread<string> FInputConsumerKey;
+			
+			[Input("Consumer Secret", DefaultString = null)]
+			public ISpread<string> FInputConsumerSecret;
+			
+			[Input("Token", DefaultString = null)]
+			public ISpread<string> FInputToken;
+			
+			[Input("Token Secret", DefaultString = null)]
+			public ISpread<string> FInputTokenSecret;
+						
+			[Output("Token")]
+			public ISpread<string> FOutputToken;
+			
+			[Output("Token Secret")]
+			public ISpread<string> FOutputTokenSecret;
+			
+			[Output("Output")]
+			public ISpread<string> FOutput;
+			
+			[Output("Authentication")]
+			public ISpread<IAuthenticator> FOutputAuthentication;
+						
+			[Import()]
+			public ILogger FLogger;
+			#endregion
+
+			public void Evaluate(int SpreadMax)
+			{	
+				// Set the slice counts of our outputs.
+				FOutput.SliceCount = SpreadMax;
+				FOutputAuthentication.SliceCount = SpreadMax;
+				
+				// start doing stuff foreach spread item
+				for (int i = 0; i < SpreadMax; i++)
+				{
+						FOutput[i]=null;
+						FOutputAuthentication[i] = null;
+						//var request = new RestRequest("oauth/access_token", Method.POST);
+						FOutputAuthentication[i]= OAuth1Authenticator.ForProtectedResource(FInputConsumerKey[i], FInputConsumerSecret[i], FInputToken[i], FInputTokenSecret[i]);
+						//FOutput[i] = FOutputAuthentication[i].GetType().ToString();
+				}		
+			}	
+		}
+
+		#region PluginInfo
+		[PluginInfo(Name = "HTTP Attach File", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 		#endregion PluginInfo
 		public class HTTP_Attach_FileNode : IPluginEvaluate
 		{		
 			#region fields & pins		
 			[Input("File")]
 			public ISpread<Stream> FInputFile;
-		
+			
 			[Input("File Parameter Name", DefaultString = "file")]
 			public ISpread<string> FInputFileParameterName;
-		
+			
 			[Input("File Name", DefaultString = "vvvv.file")]
 			public ISpread<string> FInputFileName;
 			
