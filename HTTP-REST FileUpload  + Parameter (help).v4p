@@ -195,9 +195,9 @@
    <PACK Name="addonpack" Version="33.3.0">
    </PACK>
    <NODE systemname="IOBox (String)" nodename="IOBox (String)" componentmode="InABox" id="347">
-   <BOUNDS type="Node" left="1215" top="2775" width="100" height="100">
+   <BOUNDS type="Node" left="1200" top="2940" width="100" height="100">
    </BOUNDS>
-   <BOUNDS type="Box" left="1215" top="2775" width="3225" height="615">
+   <BOUNDS type="Box" left="1200" top="2940" width="3225" height="615">
    </BOUNDS>
    <PIN pinname="Input String" slicecount="2" values="http://posttestserver.com/post.php,http://posttestserver.com/post.php">
    </PIN>
@@ -298,32 +298,6 @@
    <PIN pinname="Rows" slicecount="1" values="2">
    </PIN>
    <PIN pinname="Show Grid" slicecount="1" values="1">
-   </PIN>
-   </NODE>
-   <NODE nodename="IOBox (Value Advanced)" componentmode="InABox" id="356" systemname="IOBox (Value Advanced)">
-   <BOUNDS type="Box" left="9900" top="7935" width="495" height="1050">
-   </BOUNDS>
-   <BOUNDS type="Node" left="9900" top="7935" width="0" height="0">
-   </BOUNDS>
-   <PIN pinname="Y Input Value" slicecount="2" visible="1" values="0,0">
-   </PIN>
-   <PIN pinname="Units" slicecount="1" values="||">
-   </PIN>
-   <PIN pinname="Precision" slicecount="1" values="4">
-   </PIN>
-   <PIN pinname="Value Type" slicecount="1" values="Boolean">
-   </PIN>
-   <PIN pinname="Behavior" slicecount="1" values="Bang">
-   </PIN>
-   <PIN pinname="X Input Value" slicecount="2" values="0,0">
-   </PIN>
-   <PIN pinname="Descriptive Name" slicecount="1" values="Execute">
-   </PIN>
-   <PIN pinname="Y Output Value" visible="1">
-   </PIN>
-   <PIN pinname="Rows" slicecount="1" values="2">
-   </PIN>
-   <PIN pinname="SliceCount Mode" slicecount="1" values="ColsRowsPages">
    </PIN>
    </NODE>
    <NODE nodename="IOBox (Enumerations)" componentmode="InABox" id="358" systemname="IOBox (Enumerations)">
@@ -557,15 +531,11 @@
    </PIN>
    <PIN pinname="Body" visible="1" slicecount="1" values="||">
    </PIN>
+   <PIN pinname="BaseURL" visible="1">
+   </PIN>
+   <PIN pinname="Execute" visible="1">
+   </PIN>
    </NODE>
-   <LINK srcnodeid="347" srcpinname="Output String" dstnodeid="564" dstpinname="BaseURL">
-   </LINK>
-   <LINK srcnodeid="356" srcpinname="Y Output Value" dstnodeid="564" dstpinname="Execute" linkstyle="Bezier">
-   <LINKPOINT x="9820" y="8948">
-   </LINKPOINT>
-   <LINKPOINT x="9455" y="8918">
-   </LINKPOINT>
-   </LINK>
    <LINK srcnodeid="358" srcpinname="Output Enum" dstnodeid="564" dstpinname="HttpMethod">
    </LINK>
    <LINK srcnodeid="564" srcpinname="Output" dstnodeid="352" dstpinname="Input">
@@ -665,5 +635,59 @@
    </PIN>
    </NODE>
    <LINK srcnodeid="568" srcpinname="Y Output Value" dstnodeid="564" dstpinname="File Upload Bin Size">
+   </LINK>
+   <NODE systemname="IOBox (Value Advanced)" nodename="IOBox (Value Advanced)" componentmode="InABox" id="574">
+   <BOUNDS type="Node" left="10680" top="7740" width="100" height="100">
+   </BOUNDS>
+   <BOUNDS type="Box" left="10680" top="7740" width="480" height="480">
+   </BOUNDS>
+   <PIN pinname="Value Type" slicecount="1" values="Boolean">
+   </PIN>
+   <PIN pinname="Behavior" slicecount="1" values="Bang">
+   </PIN>
+   <PIN pinname="Y Output Value" visible="1">
+   </PIN>
+   <PIN pinname="X Input Value" slicecount="1" values="0">
+   </PIN>
+   <PIN pinname="Y Input Value" slicecount="1" values="0">
+   </PIN>
+   <PIN pinname="Descriptive Name" slicecount="1" values="Execute">
+   </PIN>
+   </NODE>
+   <LINK srcnodeid="574" srcpinname="Y Output Value" dstnodeid="564" dstpinname="Execute">
+   </LINK>
+   <NODE nodename="IOBox (String)" componentmode="InABox" id="575" systemname="IOBox (String)">
+   <BOUNDS type="Node" left="11685" top="4215" width="5805" height="270">
+   </BOUNDS>
+   <BOUNDS type="Box" left="11685" top="4215" width="5625" height="1470">
+   </BOUNDS>
+   <PIN pinname="Input String" visible="0" slicecount="1" values="|Please don&apos;t mess to much with the the postserver.com as it is a free Non Profit Service by Henry Cipolla. And don&apos;t upload important stuff! ;)|">
+   </PIN>
+   <PIN pinname="Output String" visible="0">
+   </PIN>
+   <PIN pinname="Show Grid" slicecount="1" values="0">
+   </PIN>
+   <PIN pinname="String Type" slicecount="1" values="MultiLine">
+   </PIN>
+   <PIN pinname="Size" slicecount="1" values="14">
+   </PIN>
+   </NODE>
+   <NODE nodename="IOBox (String)" componentmode="InABox" id="576" systemname="IOBox (String)">
+   <BOUNDS type="Node" left="11685" top="5865" width="2295" height="270">
+   </BOUNDS>
+   <BOUNDS type="Box" left="11685" top="5865" width="4920" height="465">
+   </BOUNDS>
+   <PIN pinname="Input String" visible="0" slicecount="1" values="http://www.henrycipolla.com/">
+   </PIN>
+   <PIN pinname="Output String" visible="0">
+   </PIN>
+   <PIN pinname="Show Grid" slicecount="1" values="0">
+   </PIN>
+   <PIN pinname="String Type" slicecount="1" values="URL">
+   </PIN>
+   <PIN pinname="Size" slicecount="1" values="14">
+   </PIN>
+   </NODE>
+   <LINK srcnodeid="347" srcpinname="Output String" dstnodeid="564" dstpinname="BaseURL">
    </LINK>
    </PATCH>

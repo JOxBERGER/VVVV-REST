@@ -180,7 +180,7 @@ namespace VVVV.Nodes
 					CancelRunningTasks(index);
 				}
 				
-				if (FInputExecute[index])
+				if (FInputExecute[i])
 				{
 					// Clear Fields
 					//FOutputResponse[index] = "";
