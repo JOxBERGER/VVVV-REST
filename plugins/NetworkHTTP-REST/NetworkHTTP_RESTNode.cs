@@ -256,7 +256,7 @@ namespace VVVV.Nodes
 									FLogger.Log(LogType.Message, "File Uplaod! Name:"+FileData[ii].FileName+" File Type:"+FileData[ii].FileType);
 									//request[index].AddFile(FileData[ii].FileName, FileData[ii].FileContent, FileData[ii].FileName, FileData[ii].FileType);
 									request[index].AddFile("name", BytestreamToArray(FileData[ii].FileContent), "name");
-									//request[index].AddParameter("", BytestreamToArray(FileData[ii].FileContent), ParameterType.RequestBody);
+									//request[index].AddParameter("", BytestreamToArray(FileData[ii].FileContent), ParameterType.RequestBody); // tried to overcome forced multipart behaviert. 
 								}				
 							}
 
@@ -406,6 +406,7 @@ namespace VVVV.Nodes
 			}	
 		}
 
+		/* Oauth is still not testest properly and therefore commented out
 		#region PluginInfo
 		[PluginInfo(Name = "HTTP OAuth Step 1. Get Request Token", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
 		#endregion PluginInfo
@@ -573,6 +574,7 @@ namespace VVVV.Nodes
 				}		
 			}	
 		}
+*/
 		
 		#region PluginInfo
 		[PluginInfo(Name = "HTTP_Attach_File", Category = "Network", Version = "1.0", Help = "Interact with RESTful Web API's.", Credits = "Based on the wonderful RestSharp.org REST and HTTP API Client for .NET.", Tags = "REST, HTTP, NETWORK", Author = "Jochen Leinberger: explorative-environments.net")]
