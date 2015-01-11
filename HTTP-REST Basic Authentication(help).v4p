@@ -1,6 +1,6 @@
 <!DOCTYPE PATCH  SYSTEM "http://vvvv.org/versions/vvvv45beta33.3.dtd" >
-   <PATCH nodename="D:\pduser-profiles\Leinberger.Jochen\Documents\_Projects_Code\VVVV-REST\HTTP-REST Basic Authentication(help).v4p" scrollx="0" scrolly="-360" systemname="HTTP-REST (help)" filename="D:\pduser-profiles\Leinberger.Jochen\Documents\_DEV\v4-REST\plugins\0NetworkHTTP-REST\HTTP-REST(help).v4p">
-   <BOUNDS type="Window" left="2070" top="2670" width="13950" height="11400">
+   <PATCH nodename="C:\Users\JL\Documents\GitHub\VVVV-REST\HTTP-REST Basic Authentication(help).v4p" scrollx="0" scrolly="-360" systemname="HTTP-REST (help)" filename="D:\pduser-profiles\Leinberger.Jochen\Documents\_DEV\v4-REST\plugins\0NetworkHTTP-REST\HTTP-REST(help).v4p">
+   <BOUNDS type="Window" left="21990" top="-8175" width="13950" height="11400">
    </BOUNDS>
    <NODE nodename="IOBox (String)" componentmode="InABox" id="92" systemname="IOBox (String)">
    <BOUNDS type="Node" left="585" top="855" width="2940" height="270">
@@ -105,9 +105,9 @@
    <NODE systemname="MAINLOOP (VVVV)" nodename="MainLoop (VVVV)" componentmode="Hidden" id="-6">
    <BOUNDS type="Node" left="9675" top="270" width="100" height="100">
    </BOUNDS>
-   <PIN pinname="Maximum forground fps" visible="1">
+   <PIN pinname="Maximum forground fps" visible="1" slicecount="1" values="120">
    </PIN>
-   <PIN pinname="Maximum background fpsS" visible="1">
+   <PIN pinname="Maximum background fpsS" visible="1" slicecount="1" values="30">
    </PIN>
    <PIN pinname="Increase Timing Precision" slicecount="1" values="1">
    </PIN>
@@ -301,7 +301,7 @@
    </BOUNDS>
    <BOUNDS type="Node" left="3735" top="3885" width="0" height="0">
    </BOUNDS>
-   <PIN pinname="Input String" slicecount="1" visible="1" values="...">
+   <PIN pinname="Input String" slicecount="1" visible="1" values="||">
    </PIN>
    <PIN pinname="Default" slicecount="1" values="||">
    </PIN>
@@ -319,7 +319,7 @@
    </BOUNDS>
    <BOUNDS type="Node" left="6090" top="3885" width="0" height="0">
    </BOUNDS>
-   <PIN pinname="Input String" slicecount="1" visible="1" values="...">
+   <PIN pinname="Input String" slicecount="1" visible="1" values="||">
    </PIN>
    <PIN pinname="Default" slicecount="1" values="||">
    </PIN>

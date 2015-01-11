@@ -1,5 +1,5 @@
 <!DOCTYPE PATCH  SYSTEM "http://vvvv.org/versions/vvvv45beta33.3.dtd" >
-   <PATCH nodename="D:\pduser-profiles\Leinberger.Jochen\Documents\_Projects_Code\VVVV-REST\HTTP-REST-OAuth(help).v4p" systemname="HTTP-REST-OAuth (help)" filename="D:\pduser-profiles\Leinberger.Jochen\Documents\_Projects_Code\VVVV-REST\HTTP-REST-OAuth(help).v4p" scrollx="0" scrolly="0">
+   <PATCH nodename="C:\Users\JL\Documents\GitHub\VVVV-REST\HTTP-REST-OAuth(experimental).v4p" systemname="HTTP-REST-OAuth (help)" filename="D:\pduser-profiles\Leinberger.Jochen\Documents\_Projects_Code\VVVV-REST\HTTP-REST-OAuth(help).v4p" scrollx="0" scrolly="0">
    <BOUNDS type="Window" left="0" top="0" width="14400" height="17340">
    </BOUNDS>
    <PACK Name="addonpack" Version="33.3.0">
@@ -17,7 +17,7 @@
    </BOUNDS>
    <BOUNDS type="Node" left="1470" top="1200" width="0" height="0">
    </BOUNDS>
-   <PIN pinname="Input String" slicecount="1" visible="1" values="api_hubic_1366206728U6faUvDSfE1iFImoFAFUIfDRbJytlaY0">
+   <PIN pinname="Input String" slicecount="1" visible="1" values="||">
    </PIN>
    <PIN pinname="Default" slicecount="1" values="||">
    </PIN>
@@ -35,7 +35,7 @@
    </BOUNDS>
    <BOUNDS type="Node" left="2085" top="1755" width="0" height="0">
    </BOUNDS>
-   <PIN pinname="Input String" slicecount="1" visible="1" values="47f40617162320eae996dfb3096a">
+   <PIN pinname="Input String" slicecount="1" visible="1" values="||">
    </PIN>
    <PIN pinname="Default" slicecount="1" values="||">
    </PIN>
@@ -89,7 +89,7 @@
    </BOUNDS>
    <BOUNDS type="Box" left="1320" top="5955" width="4275" height="345">
    </BOUNDS>
-   <PIN pinname="Input String" slicecount="1" values="http://oauth-sandbox.sevengoslings.net/authorize?oauth_token=">
+   <PIN pinname="Input String" slicecount="1" values="||">
    </PIN>
    <PIN pinname="Output String" visible="1">
    </PIN>
@@ -273,7 +273,7 @@
    </BOUNDS>
    <BOUNDS type="Node" left="7380" top="8160" width="0" height="0">
    </BOUNDS>
-   <PIN pinname="Input String" slicecount="1" visible="1" values="https://api.twitter.com/oauth/access_token">
+   <PIN pinname="Input String" slicecount="1" visible="1" values="||">
    </PIN>
    <PIN pinname="Default" slicecount="1" values="||">
    </PIN>
@@ -307,7 +307,7 @@
    </BOUNDS>
    <BOUNDS type="Node" left="5370" top="2340" width="0" height="0">
    </BOUNDS>
-   <PIN pinname="Input String" slicecount="1" visible="1" values="|http://oauth-sandbox.sevengoslings.net/request_token |">
+   <PIN pinname="Input String" slicecount="1" visible="1" values="||">
    </PIN>
    <PIN pinname="Default" slicecount="1" values="||">
    </PIN>
