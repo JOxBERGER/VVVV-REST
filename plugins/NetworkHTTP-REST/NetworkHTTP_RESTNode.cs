@@ -12,6 +12,8 @@ using VVVV.PluginInterfaces.V2;
 using VVVV.Core.Logging;
 using RestSharp;
 using RestSharp.Authenticators;
+
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -110,7 +112,9 @@ namespace VVVV.Nodes
 		int TaskCount = 0;
 		
 		// Setups specific Spreads
-		readonly Spread<RestClient> client = new Spread<RestClient>();
+		// //readonly Spread<RestClient> client = new Spread<RestClient>();
+		readonly Spread<WebClient> client = new Spread<WebClient>();
+		
 		readonly Spread<RestRequest> request = new Spread<RestRequest>();
 		readonly Spread<IRestResponse> response = new Spread<IRestResponse>();
 		
@@ -214,9 +218,13 @@ namespace VVVV.Nodes
 							//##################
 							//## Setup Client ##
 							// Setup RestClient 
-							client[index] = new RestClient();
-							client[index].BaseUrl = new Uri(FInputBaseURL[index]);
-							client[index].ClearHandlers();
+							// //client[index] = new RestClient();
+							// //client[index].BaseUrl = new Uri(FInputBaseURL[index]);
+							// //client[index].ClearHandlers();
+							
+							var BaseURL = "@" + FInputBaseURL;
+							client[index] = new RestClient(BaseURL);
+							
 
 							//####################
 							//## Authentication ##
